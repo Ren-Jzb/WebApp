@@ -1,0 +1,144 @@
+﻿
+@{
+    ViewBag.Title = "List";
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Lists</title>
+
+    <script src="/Scripts/layui-v2.5.5/layui/layui.js"></script>
+    <script src="/Scripts/1.11.3/jquery.js"></script>
+    <style>
+        .table-b table th, table td {
+            border: 1px solid #F00
+        }
+    </style>
+</head>
+<body>
+    <div class="table-b">
+        <input id="txtName" style="margin-top:10px;" />
+        <button id="BtnSearch" onclick="clickSeachList()">查询</button>
+        <table id="tblist" style="margin-top:12px;" width="400" border="0" cellspacing="0" cellpadding="0">
+            <tr>
+                <th>序号</th>
+                <th>账号</th>
+                <th>姓名</th>
+                <th>备注</th>
+                <th>操作</th>
+            </tr>
+        </table>
+        <ul id="pageLimit" style="margin-top:5px;"></ul>
+
+    </div>
+</body>
+</html>
+<script type="text/javascript">
+    var _iPageSize = 5;
+    var _iCurrentPage = 1;
+    $(function () {
+        $("#BtnSearch").click(function () { initPage(); });
+        $("body").keydown(function (event) {
+            var e = document.all ? window.event : event;
+            var keycode = (e.keyCode ? e.keyCode : e.which);
+            if (keycode === 13) {
+                clickSeachList();
+            }
+        });
+        initPage();
+    });
+
+    function initPage() {
+        clickSeachList(1, _iPageSize);
+    }
+
+    function clickSeachList(paramCurrentPage, paramPageSize) {
+        $("#tblist tr:gt(0)").remove();
+        var colNumber = $("#tblist tr th").length;
+        $.ajax({
+            type: "post",
+            url: "SeachList",
+            data: {
+                name: $("#txtName").val(),
+                page: paramCurrentPage,
+                pageSize: paramPageSize
+            },
+            dataType: "json",
+            beforeSend: function () {
+                $("#tblist tr:gt(0)").remove();
+                $("#tblist").append("<tr><td align=\"center\" colspan=\"" + colNumber + "\">加载中，请稍等．．．</td></tr>");
+            },
+            success: function (response) {
+                if (!response) {
+                    return;
+                }
+                var buf = new Array();
+                var responseList = response.Data == null ? new Array() : response.Data;
+                for (var i = 0; i < responseList.length; i++) {
+                    var model = responseList[i];
+                    buf.push("<tr>");
+                    buf.push("<td>" + (i + 1) + "</td>");
+                    buf.push("<td>" + model.UserName + "</td>");
+                    buf.push("<td>" + model.RealName + "</td>");
+                    buf.push("<td>" + model.Remark + "</td>");
+                    buf.push("<td style=\"text-align:center;\"><a onclick=\"Update('" + model.UserID + "')\" style=\"cursor:pointer\">编辑</a>/");
+                    buf.push("<a onclick=\"Delete('" + model.UserID + "')\" style=\"cursor:pointer\">删除</a></td>");
+                    buf.push("</tr>");
+                }
+                if (buf.length <= 0)
+                    buf.push("<tr><td align=\"center\" colspan=\"" + colNumber + "\">暂无数据．</td></tr>");
+
+
+                $("#tblist tr:gt(0)").remove();
+                $("#tblist").append(buf.join(""));
+
+                //分页
+                var responsePageCount = response.PageCount;
+                var responseTotalRecord = response.TotalRecord;
+                var responseCurrentPage = response.CurrentPage;
+                if (responsePageCount > 0) {
+                    layui.use(['laypage'], function () {
+                        var laypage = layui.laypage;
+                        //完整功能
+                        laypage.render({
+                            elem: 'pageLimit'
+                            , count: responseTotalRecord
+                            , curr: responseCurrentPage
+                            , limit: _iPageSize
+                            , layout: ['prev', 'page', 'next', 'count']
+                            , jump: function (obj, first) {
+                                if (first != true) {
+                                    ClickPageChange(obj.curr)
+                                }
+                            }
+                        });
+                    });
+                }
+                else {
+                    $("#pageLimit").html("");
+                }
+            },
+            error: function () {
+                $("#tblist tr:gt(0)").remove();
+                $("#tblist").append("<tr><td align=\"center\" colspan=\"" +
+                    colNumber + "\">系统性错误，请稍后再试.或点击<a href=\"#\">刷新</a></td></tr>");
+            }
+        });
+    }
+
+    function ClickPageChange(tempGoPage) {
+        clickSeachList(tempGoPage, _iPageSize);
+    }
+
+    function Update(paramId) {
+        alert(paramId);
+    }
+
+    function Delete(paramId) {
+        alert(paramId);
+    }
+
+</script>
